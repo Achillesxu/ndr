@@ -10,23 +10,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// xlsCmd represents the xls command
-var xlsCmd = &cobra.Command{
-	Use:   "xls",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("xls called")
-	},
-}
+var (
+	FilePath string
+	Password string
+	Date     string
+	Content  string
+)
 
 func init() {
 	rootCmd.AddCommand(xlsCmd)
+	xlsCmd.AddCommand(inputCmd)
 
 	// Here you will define your flags and configuration settings.
 
@@ -34,7 +27,29 @@ func init() {
 	// and all subcommands, e.g.:
 	// xlsCmd.PersistentFlags().String("foo", "", "A help for foo")
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// xlsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	xlsCmd.Flags().StringVarP(&FilePath, "file-path", "f", "", "excel file path, for instance: /file/to/i.xls")
+	xlsCmd.Flags().StringVarP(&Password, "password", "p", "123", "excel password")
+	xlsCmd.Flags().StringVarP(&Date, "date", "d", "today", "default today, date with date format")
+
+	_ = xlsCmd.MarkFlagRequired("file-path")
+	_ = xlsCmd.MarkFlagFilename("file-path", "xls", "xlsx")
+}
+
+// xlsCmd represents the xls command
+var xlsCmd = &cobra.Command{
+	Use:   "xls",
+	Short: "add daily report to excel file",
+	Long:  `add daily report to excel file in directory`,
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("xls called")
+	},
+}
+
+var inputCmd = &cobra.Command{
+	Use:   "input",
+	Short: "input daily report",
+	Long:  "input daily report",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("input called")
+	},
 }
