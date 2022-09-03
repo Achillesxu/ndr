@@ -25,23 +25,23 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
+var (
+	cfgFile string
+	isDebug bool
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "ndr",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "nuo declaration team tools",
+	Long:  `it contains daily report submit, output weekly report`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
@@ -64,6 +64,8 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ndr.yaml)")
+	rootCmd.PersistentFlags().BoolVar(&isDebug, "debug", false, "Output verbose debug information")
+	cobra.OnInitialize(initConfig)
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -72,6 +74,30 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	// set log
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors:   true,
+		DisableQuote:  true,
+		FullTimestamp: true,
+		// FieldMap: log.FieldMap{
+		// 	log.FieldKeyTime:  "@time",
+		// 	log.FieldKeyLevel: "@level",
+		// 	log.FieldKeyMsg:   "@msg",
+		// 	log.FieldKeyFunc:  "@caller",
+		// },
+	})
+
+	log.SetOutput(os.Stdout)
+
+	switch isDebug {
+	case true:
+		log.SetLevel(log.DebugLevel)
+		log.SetReportCaller(true)
+		log.Debugln("Enabling debug output")
+	default:
+		log.SetLevel(log.InfoLevel)
+	}
+
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
@@ -82,14 +108,15 @@ func initConfig() {
 
 		// Search config in home directory with name ".ndr" (without extension).
 		viper.AddConfigPath(home)
-		viper.SetConfigType("yaml")
+		viper.SetConfigType("toml")
 		viper.SetConfigName(".ndr")
+		log.Debugf("using config file: %s", filepath.Join(home, ".ndr.toml"))
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+		_, _ = fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
 }
