@@ -95,43 +95,51 @@ var (
 	completeFlag = YeahI
 	progressFlag = HundredP
 	remarkFlag   string
+	rawFlag      bool
 )
 
 func init() {
 	rootCmd.AddCommand(xlsCmd)
-	xlsCmd.AddCommand(inputCmd)
+	xlsCmd.AddCommand(writeCmd)
+	xlsCmd.AddCommand(readCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
 	// xlsCmd.PersistentFlags().String("foo", "", "A help for foo")
-	inputCmd.Flags().StringVarP(&dateFlag, "date", "d", time.Now().Format("01/02/2006"),
-		"default today, date with date format day/month/year，default: 当天, 指定日期29/09/2022")
-	inputCmd.Flags().StringVarP(&reportFlag, "report", "r", "1 ",
+	writeCmd.Flags().StringVarP(&dateFlag, "date", "d", time.Now().Format("2006/1/2"),
+		"default today, date with date format year/month/day，default: 当天, 指定日期2022/9/1")
+	writeCmd.Flags().StringVarP(&reportFlag, "report", "r", "1 ",
 		`daily report content may contain multiple lines, default：空，例如：
 -r "1 天"
 `)
-
-	inputCmd.Flags().VarP(enumflag.New(&categoryFlag, "category", categoryModeIds, enumflag.EnumCaseSensitive),
+	_ = writeCmd.MarkFlagRequired("report")
+	writeCmd.Flags().VarP(enumflag.New(&categoryFlag, "category", categoryModeIds, enumflag.EnumCaseSensitive),
 		"category", "c",
 		"select one 其他，调休，请假、出差，会议，学习提升，技术调研，协助他人，代码优化，运维问题，任务需求, default: 其他",
 	)
-	// inputCmd.Flags().Lookup("category").NoOptDefVal = "其他"
+	// writeCmd.Flags().Lookup("category").NoOptDefVal = "其他"
 
-	inputCmd.Flags().VarP(enumflag.New(&completeFlag, "complete", isCompletedModeIds, enumflag.EnumCaseSensitive),
+	writeCmd.Flags().VarP(enumflag.New(&completeFlag, "complete", isCompletedModeIds, enumflag.EnumCaseSensitive),
 		"complete", "o",
 		"select one 是，否, default: 是",
 	)
-	// inputCmd.Flags().Lookup("complete").NoOptDefVal = "是"
+	// writeCmd.Flags().Lookup("complete").NoOptDefVal = "是"
 
-	inputCmd.Flags().VarP(enumflag.New(&progressFlag, "progress", progressModeIds, enumflag.EnumCaseSensitive),
+	writeCmd.Flags().VarP(enumflag.New(&progressFlag, "progress", progressModeIds, enumflag.EnumCaseSensitive),
 		"progress", "p",
 		"select one 100%，90%，80%，70%，60%，50%，40%，30%，20%，10%，0%，default: 100%",
 	)
-	// inputCmd.Flags().Lookup("progress").NoOptDefVal = "100%"
+	// writeCmd.Flags().Lookup("progress").NoOptDefVal = "100%"
 
-	inputCmd.Flags().StringVarP(&remarkFlag, "remark", "m", "", "remark 备注，default: 空")
+	writeCmd.Flags().StringVarP(&remarkFlag, "remark", "m", "", "remark 备注，default: 空")
+
+	readCmd.Flags().StringVarP(&dateFlag, "date", "d", time.Now().Format("2006/1/2"),
+		"default today, date with date format year/month/day，default: 某天, 指定日期2022/9/1")
+
+	readCmd.Flags().BoolVar(&rawFlag, "raw", false, "only output working descriptions")
+
 }
 
 // xlsCmd represents the xls command
@@ -142,13 +150,19 @@ var xlsCmd = &cobra.Command{
 read daily report make weekly report`,
 }
 
-var inputCmd = &cobra.Command{
-	Use:   "input",
-	Short: "input daily report",
-	Long:  "input daily report",
+var writeCmd = &cobra.Command{
+	Use:   "write",
+	Short: "write one daily report",
+	Long: `write one daily report, 
+for instance: 
+ndr xls write -d 2022/9/5 -r "这是第一条日志" -c 其他 -o 是 -p 100% -m "标记"
+ndr xls write -r "这是第二条日志"
+ndr xls write -r "这是第二条日志" -o 否 -p 60%
+ndr xls write -r "开会" -c 会议
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := log.WithFields(log.Fields{
-			"subCommand": "xls input",
+			"subCommand": "xls write",
 		})
 		logger.Debug("--date: ", dateFlag)
 		logger.Debug("--report: ", reportFlag)
@@ -159,7 +173,7 @@ var inputCmd = &cobra.Command{
 
 		dr := excels.DailyReport{
 			DateStr:     dateFlag,
-			Reports:     reportFlag,
+			ReportStr:   reportFlag,
 			CategoryStr: categoryModeIds[categoryFlag][0],
 			CompleteStr: isCompletedModeIds[completeFlag][0],
 			ProgressStr: progressModeIds[progressFlag][0],
@@ -175,6 +189,31 @@ var inputCmd = &cobra.Command{
 		if !xls.IsExcelExists() {
 			return
 		}
-		xls.WriteDailyReport2Excel()
+		xls.WriteDailyReport2Excel(&dr)
+	},
+}
+
+var readCmd = &cobra.Command{
+	Use:   "read",
+	Short: "read one day's daily reports, or one week of daily reports",
+	Long: `write one daily report,
+for instance:
+ndr xls read -d 2022/9/5 # one day reports
+`,
+	Run: func(cmd *cobra.Command, args []string) {
+		logger := log.WithFields(log.Fields{
+			"subCommand": "xls read",
+		})
+		logger.Debug("--date: ", dateFlag)
+		xls := excels.NewExcels(
+			viper.GetString("xls.path"),
+			viper.GetString("xls.password"),
+			viper.GetString("xls.sheet"),
+			logger,
+		)
+		if !xls.IsExcelExists() {
+			return
+		}
+		xls.ReadOneDayDailyReportFromExcel(dateFlag, rawFlag)
 	},
 }
