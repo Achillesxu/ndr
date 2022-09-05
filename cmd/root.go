@@ -23,13 +23,10 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"os"
 )
 
 var (
@@ -41,7 +38,9 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "ndr",
 	Short: "nuo declaration team tools",
-	Long:  `it contains daily report submit, output weekly report`,
+	Long: `it contains daily report submit, output weekly report
+for instance: ndr xls input -r "1 第一条" -r "2 第二条" -r "3 第三条"
+`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
@@ -75,16 +74,12 @@ func init() {
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	// set log
+
 	log.SetFormatter(&log.TextFormatter{
 		ForceColors:   true,
+		DisableColors: false,
 		DisableQuote:  true,
 		FullTimestamp: true,
-		// FieldMap: log.FieldMap{
-		// 	log.FieldKeyTime:  "@time",
-		// 	log.FieldKeyLevel: "@level",
-		// 	log.FieldKeyMsg:   "@msg",
-		// 	log.FieldKeyFunc:  "@caller",
-		// },
 	})
 
 	log.SetOutput(os.Stdout)
@@ -110,13 +105,12 @@ func initConfig() {
 		viper.AddConfigPath(home)
 		viper.SetConfigType("toml")
 		viper.SetConfigName(".ndr")
-		log.Debugf("using config file: %s", filepath.Join(home, ".ndr.toml"))
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		_, _ = fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+		log.Info("Using config file:", viper.ConfigFileUsed())
 	}
 }

@@ -6,9 +6,11 @@ package cmd
 
 import (
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"github.com/thediveo/enumflag/v2"
 	"time"
 
+	"github.com/Achillesxu/ndr/internal/excels"
 	"github.com/spf13/cobra"
 )
 
@@ -88,7 +90,7 @@ var progressModeIds = map[ProgressMode][]string{
 
 var (
 	dateFlag     string
-	reportFlag   []string
+	reportFlag   string
 	categoryFlag = OtherC
 	completeFlag = YeahI
 	progressFlag = HundredP
@@ -106,9 +108,9 @@ func init() {
 	// xlsCmd.PersistentFlags().String("foo", "", "A help for foo")
 	inputCmd.Flags().StringVarP(&dateFlag, "date", "d", time.Now().Format("01/02/2006"),
 		"default today, date with date format day/month/year，default: 当天, 指定日期29/09/2022")
-	inputCmd.Flags().StringSliceVarP(&reportFlag, "report", "r", []string{},
+	inputCmd.Flags().StringVarP(&reportFlag, "report", "r", "1 ",
 		`daily report content may contain multiple lines, default：空，例如：
--r "1 天" "2 本" "3 本周"
+-r "1 天"
 `)
 
 	inputCmd.Flags().VarP(enumflag.New(&categoryFlag, "category", categoryModeIds, enumflag.EnumCaseSensitive),
@@ -145,14 +147,34 @@ var inputCmd = &cobra.Command{
 	Short: "input daily report",
 	Long:  "input daily report",
 	Run: func(cmd *cobra.Command, args []string) {
-		log := log.WithFields(log.Fields{
+		logger := log.WithFields(log.Fields{
 			"subCommand": "xls input",
 		})
-		log.Info("dateFlag: ", dateFlag)
-		log.Info("reportFlag: ", reportFlag)
-		log.Info("category: ", categoryModeIds[categoryFlag][0])
-		log.Info("completeFlag: ", isCompletedModeIds[completeFlag][0])
-		log.Info("progressFlag: ", progressModeIds[progressFlag][0])
-		log.Info("remarkFlag: ", remarkFlag)
+		logger.Debug("--date: ", dateFlag)
+		logger.Debug("--report: ", reportFlag)
+		logger.Debug("--category: ", categoryModeIds[categoryFlag][0])
+		logger.Debug("--complete: ", isCompletedModeIds[completeFlag][0])
+		logger.Debug("--progress: ", progressModeIds[progressFlag][0])
+		logger.Debug("--remark: ", remarkFlag)
+
+		dr := excels.DailyReport{
+			DateStr:     dateFlag,
+			Reports:     reportFlag,
+			CategoryStr: categoryModeIds[categoryFlag][0],
+			CompleteStr: isCompletedModeIds[completeFlag][0],
+			ProgressStr: progressModeIds[progressFlag][0],
+			Remarks:     remarkFlag,
+		}
+		logger.Infof("input flags: %#v", dr)
+		xls := excels.NewExcels(
+			viper.GetString("xls.path"),
+			viper.GetString("xls.password"),
+			viper.GetString("xls.sheet"),
+			logger,
+		)
+		if !xls.IsExcelExists() {
+			return
+		}
+		xls.WriteDailyReport2Excel()
 	},
 }
