@@ -96,6 +96,7 @@ var (
 	progressFlag = HundredP
 	remarkFlag   string
 	rawFlag      bool
+	rangeFlag    int
 )
 
 func init() {
@@ -138,8 +139,10 @@ func init() {
 	readCmd.Flags().StringVarP(&dateFlag, "date", "d", time.Now().Format("2006/1/2"),
 		"default today, date with date format year/month/day，default: 某天, 指定日期2022/9/1")
 
-	readCmd.Flags().BoolVar(&rawFlag, "raw", false, "only output working descriptions")
+	readCmd.Flags().IntVarP(&rangeFlag, "range", "r", 1,
+		"default: 1, only today daily report if range is 1, if range is 5, will contains 5 days daily report")
 
+	readCmd.Flags().BoolVar(&rawFlag, "raw", false, "only output working descriptions")
 }
 
 // xlsCmd represents the xls command
@@ -205,6 +208,9 @@ ndr xls read -d 2022/9/5 # one day reports
 			"subCommand": "xls read",
 		})
 		logger.Debug("--date: ", dateFlag)
+		logger.Debug("--range: ", rangeFlag)
+		logger.Debug("--raw: ", rawFlag)
+
 		xls := excels.NewExcels(
 			viper.GetString("xls.path"),
 			viper.GetString("xls.password"),
@@ -214,6 +220,6 @@ ndr xls read -d 2022/9/5 # one day reports
 		if !xls.IsExcelExists() {
 			return
 		}
-		xls.ReadOneDayDailyReportFromExcel(dateFlag, rawFlag)
+		xls.ReadOneDayDailyReportFromExcel(dateFlag, rangeFlag, rawFlag)
 	},
 }

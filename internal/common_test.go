@@ -5,6 +5,7 @@
 package internal
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -12,4 +13,10 @@ import (
 func TestGetNowMonth(t *testing.T) {
 	monthStr := GetNowMonthNumber()
 	require.Equal(t, "9", monthStr)
+}
+
+func TestGetDateList(t *testing.T) {
+	dates, err := GetDateList("2022/9/5", 5)
+	fmt.Println(dates)
+	require.NoError(t, err)
 }

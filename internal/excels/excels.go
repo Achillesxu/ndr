@@ -193,22 +193,27 @@ func (e *Excels) GetRowData(axis []string) []string {
 	return colStr
 }
 
-func (e *Excels) GetOneDayDailyReport(axis string, date string) [][]string {
+func (e *Excels) GetOneDayDailyReport(month string, date string) ([][]string, error) {
+	e.Sheet = fmt.Sprintf("%s月份", month)
+	result := e.FindDateCell(date)
+	if len(result) == 0 {
+		return nil, fmt.Errorf("no find date %s cell", date)
+	}
 	drData := make([][]string, 0)
 	line := 0
-	axisArr := e.GetRowAxis(axis, line)
+	axisArr := e.GetRowAxis(result[0], line)
 	rowData := e.GetRowData(axisArr)
 	drData = append(drData, rowData)
 	for {
 		line += 1
-		axisArr := e.GetRowAxis(axis, line)
+		axisArr := e.GetRowAxis(result[0], line)
 		rowData := e.GetRowData(axisArr)
 		if rowData[0] != date || (len(rowData[0]) == 0 && len(rowData[1]) == 0) {
 			break
 		}
 		drData = append(drData, rowData)
 	}
-	return drData
+	return drData, nil
 }
 
 func (e *Excels) GetSheetMonth() []string {
@@ -222,7 +227,7 @@ func (e *Excels) GetSheetMonth() []string {
 	return month
 }
 
-func (e *Excels) ReadOneDayDailyReportFromExcel(date string, raw bool) {
+func (e *Excels) ReadOneDayDailyReportFromExcel(dateFlag string, rangeFlag int, rawFlag bool) {
 	e.logger = e.logger.WithFields(log.Fields{
 		"file":  e.FilePath,
 		"sheet": e.Sheet,
@@ -235,42 +240,49 @@ func (e *Excels) ReadOneDayDailyReportFromExcel(date string, raw bool) {
 		}
 	}()
 
-	monthStr := strings.Split(date, "/")[1]
+	dates, err := internal.GetDateList(dateFlag, rangeFlag)
+	if err != nil {
+		logger.Fatal("get dates list failed", err)
+	}
+	months := internal.GetMonthList(dates)
 
 	monthNums := e.GetSheetMonth()
 
-	found := false
-	for _, m := range monthNums {
-		if m == monthStr {
-			found = true
-			break
+	monthNumMap := make(map[string]int)
+	for i := 0; i < len(monthNums); i++ {
+		monthNumMap[monthNums[i]] = 1
+	}
+	for i := 0; i < len(months); i++ {
+		if _, ok := monthNumMap[months[i]]; !ok {
+			e.logger.Fatalf("not found sheet for month: %s ", months[i])
 		}
 	}
 
-	if !found {
-		e.logger.Fatalf("not found sheet for month: %s ", monthStr)
-	} else {
-		e.Sheet = fmt.Sprintf("%s月份", monthStr)
+	datas := make([][][]string, 0)
+	for i := len(months) - 1; i >= 0; i-- {
+		data, err := e.GetOneDayDailyReport(months[i], dates[i])
+		if err != nil {
+			e.logger.Errorf("no find sheet %s月份 date %s, err: %v", months[i], dates[i], err)
+		} else {
+			datas = append(datas, data)
+		}
 	}
-	result := e.FindDateCell(date)
-	if len(result) == 0 {
-		logger.Infof("cant find date %s cell", date)
-		return
-	}
-	data := e.GetOneDayDailyReport(result[0], date)
+	table := tablewriter.NewWriter(os.Stdout)
+	header := []string{"日期", "工作描述", "工作分类", "今日是否能完成", "工作进度", "备注"}
+	table.SetHeader(header)
+	for _, data := range datas {
+		if rawFlag {
+			for _, v := range data {
+				fmt.Println(v[1])
+			}
+		} else {
+			for _, d := range data {
+				table.Append(d)
+			}
 
-	if raw {
-		for _, v := range data {
-			fmt.Println(v[1])
 		}
-	} else {
-		table := tablewriter.NewWriter(os.Stdout)
-		header := []string{"日期", "工作描述", "工作分类", "今日是否能完成", "工作进度", "备注"}
-		table.SetHeader(header)
-		for _, d := range data {
-			table.Append(d)
-		}
+	}
+	if !rawFlag {
 		table.Render()
 	}
-	return
 }
