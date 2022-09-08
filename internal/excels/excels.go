@@ -92,10 +92,10 @@ func (e *Excels) WriteDailyReport2Excel(dr *DailyReport) {
 	if idx == -1 {
 		logger.Fatal("sheet not found")
 	}
-	e.logger.Infof("sheet idx: %d", idx)
+	e.logger.Debugf("sheet idx: %d", idx)
 	e.File.SetActiveSheet(idx)
 	rCnt := e.FindValidRowNumber()
-	logger.Infof("valid row number: %d", rCnt)
+	logger.Debugf("valid row number: %d", rCnt)
 	e.WriteDailyReport(rCnt, dr)
 	e.MergeDateCell(dr.DateStr)
 	if err := e.File.Save(); err != nil {
@@ -118,7 +118,7 @@ func (e *Excels) FindValidRowNumber() int {
 			logger.Fatal("col iterator error", err)
 		}
 		if len(row) > 0 && len(row[:4]) > 0 || rowCnt == 2 {
-			logger.Infof("col iterator %d, content: %v", rowCnt, row)
+			logger.Debugf("col iterator %d, content: %v", rowCnt, row)
 			rowCnt += 1
 			continue
 		} else {
@@ -279,7 +279,6 @@ func (e *Excels) ReadOneDayDailyReportFromExcel(dateFlag string, rangeFlag int, 
 			for _, d := range data {
 				table.Append(d)
 			}
-
 		}
 	}
 	if !rawFlag {
