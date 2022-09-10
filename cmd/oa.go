@@ -48,7 +48,7 @@ for instance:
 		logger := log.WithFields(log.Fields{
 			"subCommand": "oa day",
 		})
-		_, err := internal.NewChromeLogin(cmd.Context(), isHeadless, logger)
+		_, err := internal.NewOaWebLogin(cmd.Context(), isHeadless, logger)
 		if err != nil {
 			logger.Fatal(err)
 		}
@@ -66,7 +66,7 @@ for instance:
 		logger := log.WithFields(log.Fields{
 			"subCommand": "oa week",
 		})
-		_, err := internal.NewChromeLogin(cmd.Context(), isHeadless, logger)
+		_, err := internal.NewOaWebLogin(cmd.Context(), isHeadless, logger)
 		if err != nil {
 			logger.Fatal(err)
 		}

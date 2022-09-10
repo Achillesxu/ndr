@@ -5,7 +5,6 @@
 package internal
 
 import (
-	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
@@ -35,8 +34,4 @@ func GetMonthList(dates []string) []string {
 		months = append(months, strings.Split(d, "/")[1])
 	}
 	return months
-}
-
-func Bin2Base64Str(b []byte) string {
-	return base64.StdEncoding.EncodeToString(b)
 }
