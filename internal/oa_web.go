@@ -20,25 +20,6 @@ import (
 	"time"
 )
 
-type OaWeb struct {
-	IsHeadless  bool
-	BrowserPath string
-	Logger      *log.Entry
-	Browser     *rod.Browser
-	Launcher    *launcher.Launcher
-	Page        *rod.Page
-}
-
-type captchaReq struct {
-	Base64Str string `json:"base64str"`
-}
-
-type captchaRes struct {
-	Code int    `json:"code"`
-	Msg  string `json:"msg"`
-	Data string `json:"data"`
-}
-
 func NewOaWebLogin(ctx context.Context, headless bool, logger *log.Entry) (*OaWeb, error) {
 	o := NewOaWeb(headless, logger)
 	err := o.Start()
@@ -310,14 +291,6 @@ func (o *OaWeb) ClickWorkingReportBtn() error {
 	return nil
 }
 
-func (o *OaWeb) StuffDailyReport() error {
-	return nil
-}
-
-func (o *OaWeb) StuffWeeklyReport() error {
-	return nil
-}
-
 func (o *OaWeb) StuffLoginInfo(ctx context.Context) error {
 	err := o.InputTextX("//*[@id=\"usernameInput\"]", viper.GetString("oa.account"))
 	if err != nil {
@@ -349,5 +322,50 @@ func (o *OaWeb) LoginOa(ctx context.Context) error {
 		}
 		break
 	}
+	return err
+}
+
+func (o *OaWeb) SelectCopyTo(rType ReportType, copyTo []string) error {
+
+	err := o.ClickBtnX(CopyToClickXPath[Daily])
+	if err != nil {
+		return err
+	}
+	nameTemplate := `//span[@class="text" and string()="%s"]`
+
+	for _, v := range copyTo {
+		selector := fmt.Sprintf(nameTemplate, v)
+		err = o.ClickBtnX(selector)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (o *OaWeb) StuffReport(rType ReportType, report string, copyTo []string) error {
+	var err error
+	for {
+		err = o.ClickBtnX(ReportTypeBtnXPath[rType])
+		if err != nil {
+			break
+		}
+		err = o.InputTextX(ReportTextareaXPath[rType], report)
+		if err != nil {
+			break
+		}
+		time.Sleep(1 * time.Second)
+		err = o.SelectCopyTo(rType, copyTo)
+		if err != nil {
+			break
+		}
+		err = o.ClickBtnX(ReportSubmitBtnXPath[rType])
+		if err != nil {
+			break
+		}
+		break
+	}
+
+	// TODO: we should click to select right date ???
 	return err
 }
