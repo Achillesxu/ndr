@@ -53,8 +53,6 @@ func NewOaWebLogin(ctx context.Context, headless bool, logger *log.Entry) (*OaWe
 	if err != nil {
 		return nil, err
 	}
-
-	time.Sleep(time.Second * 1)
 	return o, nil
 }
 
@@ -153,7 +151,7 @@ func (o *OaWeb) HasX(selector string) (*rod.Element, error) {
 		if err != nil {
 			return nil, o.LogErr(err, "find element %s err", selector)
 		} else {
-			return nil, o.LogErr(nil, "not find element %s", selector)
+			return nil, o.LogErr(fmt.Errorf("not find element %s", selector), "")
 		}
 	}
 	return element, nil
@@ -190,27 +188,27 @@ func (o *OaWeb) ClickBtnX(selector string) error {
 	return nil
 }
 
-func (o *OaWeb) ElementAttribute(element *rod.Element, name string) (value *string, err error) {
-	v, err := element.Attribute(name)
-	if err != nil {
-		return nil, o.LogErr(err, "no attribute: %s", name)
-	}
-	return v, nil
-}
-
-func (o *OaWeb) GetCaptchaPath(selector string) (*url.URL, error) {
+func (o *OaWeb) ElementAttribute(selector, name string) (value *string, err error) {
 	element, err := o.HasX(selector)
 	if err != nil {
 		return nil, err
 	}
-	v, err := o.ElementAttribute(element, "src")
+	v, err := element.Attribute(name)
 	if err != nil {
-		return nil, o.LogErr(err, "selector: %s", selector)
+		return nil, o.LogErr(err, "selector: %s, no attribute: %s", selector, name)
 	}
-	uStr := viper.GetString("oa.captcha_host") + *v
+	return v, nil
+}
+
+func (o *OaWeb) GetAttrUrl(selector, name, host string) (*url.URL, error) {
+	v, err := o.ElementAttribute(selector, name)
+	if err != nil {
+		return nil, err
+	}
+	uStr := host + *v
 	u, err := url.Parse(uStr)
 	if err != nil {
-		return nil, o.LogErr(err, "parse captcha url: %s", uStr)
+		return nil, o.LogErr(err, "parse url: %s", uStr)
 	}
 	return u, nil
 }
@@ -243,29 +241,33 @@ func (o *OaWeb) GetCaptchaStr(u *url.URL) (string, error) {
 	}
 }
 
-func (o *OaWeb) RetryLoginBtn(u *url.URL, retryCnt int) error {
+func (o *OaWeb) RetryLoginBtn(retryCnt int) error {
 	var e error = nil
 	var rro *proto.RuntimeRemoteObject
+	var u *url.URL
+	var captcha string
 	for i := 0; i < retryCnt; i++ {
-		captcha, err := o.GetCaptchaStr(u)
-		if err != nil {
-			e = err
-		} else {
-			err = o.InputTextX(`//input[@name="vcode"]`, captcha)
-			if err != nil {
-				e = errors.Wrapf(err, "input captcha: %s failed", captcha)
+		u, e = o.GetAttrUrl("//img[@onclick]", "src", viper.GetString("oa.captcha_host"))
+		if e != nil {
+			continue
+		}
+		captcha, e = o.GetCaptchaStr(u)
+		if e == nil {
+			e = o.InputTextX(`//input[@name="vcode"]`, captcha)
+			if e != nil {
+				e = errors.Wrapf(e, "input captcha: %s failed", captcha)
 			} else {
-				err = o.ClickBtnX(`//button[@type="button" and string()="立即登录"]`)
-				if err != nil {
-					e = errors.Wrap(err, "click login button failed")
+				e = o.ClickBtnX(`//button[@type="button" and string()="立即登录"]`)
+				if e != nil {
+					e = errors.Wrap(e, "click login button failed")
 				} else {
-					time.Sleep(time.Second * 2)
-					rro, err = o.Page.Eval(`() => window.location.host`)
-					if err != nil {
-						e = o.LogErr(err, "run js () => {return window.location.host} failed")
+					time.Sleep(time.Second * 1)
+					rro, e = o.Page.Eval(`() => window.location.host`)
+					if e != nil {
+						e = o.LogErr(e, "run js () => {return window.location.host} failed")
 					} else {
 						if rro.Value.Str() == "oa.jss.com.cn" {
-							err = nil
+							e = nil
 							break
 						}
 					}
@@ -278,13 +280,42 @@ func (o *OaWeb) RetryLoginBtn(u *url.URL, retryCnt int) error {
 				}
 			}
 		}
-		//
 	}
 	if e != nil {
 		return e
 	} else {
 		return nil
 	}
+}
+
+func (o *OaWeb) ClickWorkingReportBtn() error {
+	err := o.Page.WaitElementsMoreThan("#root > div > div > div:nth-child(2) > div.g-wrap.oa-clearfix.oa-mt20 > div.menu-wrap.oa-fl > ul > li:nth-child(6)", 0)
+	if err != nil {
+		return o.LogErr(err, "wait 工作汇报 appear failed")
+	}
+	u, err := o.GetAttrUrl(`//ul/li[6]/a`, "href", viper.GetString("oa.oa_host"))
+
+	if err != nil {
+		return err
+	}
+
+	err = o.Page.Navigate(u.String())
+	if err != nil {
+		return o.LogErr(err, "navigate to %s failed", u.String())
+	}
+	err = o.Page.WaitLoad()
+	if err != nil {
+		return o.LogErr(err, "wait load oa/workreport/loadWorkreport.do")
+	}
+	return nil
+}
+
+func (o *OaWeb) StuffDailyReport() error {
+	return nil
+}
+
+func (o *OaWeb) StuffWeeklyReport() error {
+	return nil
 }
 
 func (o *OaWeb) StuffLoginInfo(ctx context.Context) error {
@@ -302,18 +333,21 @@ func (o *OaWeb) StuffLoginInfo(ctx context.Context) error {
 }
 
 func (o *OaWeb) LoginOa(ctx context.Context) error {
-	err := o.StuffLoginInfo(ctx)
-	if err != nil {
-		return err
+	var err error = nil
+	for {
+		err = o.StuffLoginInfo(ctx)
+		if err != nil {
+			break
+		}
+		err = o.RetryLoginBtn(10)
+		if err != nil {
+			break
+		}
+		err = o.ClickWorkingReportBtn()
+		if err != nil {
+			break
+		}
+		break
 	}
-	u, err := o.GetCaptchaPath("//img[@onclick]")
-	if err != nil {
-		return err
-	}
-	err = o.RetryLoginBtn(u, 10)
-	if err != nil {
-		return err
-	}
-	// TODO: get captcha string
-	return nil
+	return err
 }
