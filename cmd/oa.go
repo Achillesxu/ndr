@@ -16,6 +16,7 @@ import (
 
 var (
 	isHeadless bool
+	onlyLogin  bool
 )
 
 func init() {
@@ -27,6 +28,9 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	oaCmd.PersistentFlags().BoolVar(&isHeadless, "headless", true,
 		"set headless mode, default value is true that means no gui")
+
+	oaCmd.PersistentFlags().BoolVar(&onlyLogin, "only-login", false,
+		"set head mode, only login and sleep 3600 seconds, after stuff your report, you must kill the process")
 
 	weekCmd.Flags().IntVarP(&rangeFlag, "range", "r", 5,
 		"default: 5, range means that it contains the number of daily report")
@@ -56,18 +60,28 @@ ndr oa day --headless=true
 		logger := log.WithFields(log.Fields{
 			"subCommand": "oa day",
 		})
-		reports, err := excels.GetOneDaysReports(time.Now().Format("2006/1/2"), 1, logger)
-		if err != nil {
-			return
+
+		if onlyLogin {
+			_, err := internal.NewOaWebLogin(cmd.Context(), false, logger)
+			if err != nil {
+				logger.Fatal(err)
+			}
+			time.Sleep(time.Second * 3600)
+		} else {
+			reports, err := excels.GetOneDaysReports(time.Now().Format("2006/1/2"), 1, logger)
+			if err != nil {
+				return
+			}
+
+			oa, err := internal.NewOaWebLogin(cmd.Context(), isHeadless, logger)
+			if err != nil {
+				return
+			}
+			if err := oa.StuffReport(0, reports, viper.GetStringSlice("oa.copy_to")); err != nil {
+				return
+			}
 		}
 
-		oa, err := internal.NewOaWebLogin(cmd.Context(), isHeadless, logger)
-		if err != nil {
-			return
-		}
-		if err := oa.StuffReport(0, reports, viper.GetStringSlice("oa.copy_to")); err != nil {
-			return
-		}
 	},
 }
 
@@ -81,16 +95,32 @@ for instance:
 		logger := log.WithFields(log.Fields{
 			"subCommand": "oa week",
 		})
-		reports, err := excels.GetOneDaysReports(time.Now().Format("2006/1/2"), rangeFlag, logger)
-		if err != nil {
+
+		if rangeFlag <= 1 {
+			logger.Error("rangeFlag must >= 1")
 			return
 		}
-		oa, err := internal.NewOaWebLogin(cmd.Context(), isHeadless, logger)
-		if err != nil {
-			logger.Fatal(err)
-		}
-		if err := oa.StuffReport(1, reports, viper.GetStringSlice("oa.copy_to")); err != nil {
-			logger.Fatal(err)
+
+		if onlyLogin {
+			_, err := internal.NewOaWebLogin(cmd.Context(), false, logger)
+			if err != nil {
+				logger.Fatal(err)
+			}
+			time.Sleep(time.Second * 3600)
+		} else {
+			reports, err := excels.GetOneDaysReports(time.Now().Format("2006/1/2"), rangeFlag, logger)
+			if err != nil {
+				return
+			}
+
+			oa, err := internal.NewOaWebLogin(cmd.Context(), isHeadless, logger)
+			if err != nil {
+				logger.Fatal(err)
+			}
+
+			if err := oa.StuffReport(1, reports, viper.GetStringSlice("oa.copy_to")); err != nil {
+				logger.Fatal(err)
+			}
 		}
 	},
 }
