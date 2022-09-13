@@ -39,7 +39,6 @@ var rootCmd = &cobra.Command{
 	Use:   "ndr",
 	Short: "nuo declaration team tools",
 	Long: `it contains daily report submit, output weekly report
-for instance: ndr xls input -r "1 第一条" -r "2 第二条" -r "3 第三条"
 `,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
