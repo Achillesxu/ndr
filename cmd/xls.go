@@ -6,7 +6,6 @@ package cmd
 
 import (
 	"github.com/Achillesxu/ndr/internal"
-	validation "github.com/go-ozzo/ozzo-validation/v4"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/thediveo/enumflag/v2"
@@ -97,7 +96,6 @@ var (
 	completeFlag = YeahI
 	progressFlag = HundredP
 	remarkFlag   string
-	rawFlag      bool
 	rangeFlag    int
 )
 
@@ -179,6 +177,10 @@ ndr xls write -r "开会" -c 会议
 			logger.Errorf("dateFlag format must yyyy/m/d, err: %v", err)
 			return
 		}
+		if len(reportFlag) <= 0 {
+			logger.Error("reportFlag length must > 0")
+			return
+		}
 
 		dr := excels.DailyReport{
 			DateStr:     dateFlag,
@@ -222,10 +224,11 @@ ndr xls read -d 2022/9/5 # one day reports
 			return
 		}
 
-		err = validation.Validate(rangeFlag,
-			validation.Required, // not empty
-			validation.Min(1),   // length between 5 and 100
-		)
+		if rangeFlag <= 1 {
+			logger.Error("rangeFlag must >= 1")
+			return
+		}
+
 		if err != nil {
 			logger.Errorf("rangeFlag must >= 1, err: %v", err)
 			return
