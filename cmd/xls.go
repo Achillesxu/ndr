@@ -5,6 +5,8 @@ Copyright © 2022 Achilles Xu  <yuqingxushiyin@gmail.com>
 package cmd
 
 import (
+	"github.com/Achillesxu/ndr/internal"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/thediveo/enumflag/v2"
@@ -137,12 +139,10 @@ func init() {
 	writeCmd.Flags().StringVarP(&remarkFlag, "remark", "m", "", "remark 备注，default: 空")
 
 	readCmd.Flags().StringVarP(&dateFlag, "date", "d", time.Now().Format("2006/1/2"),
-		"default today, date with date format year/month/day，default: 某天, 指定日期2022/9/1")
+		"default today, date with date format yyyy/m/d，default: 某天, 指定日期2022/9/1,or 2022/10/14")
 
 	readCmd.Flags().IntVarP(&rangeFlag, "range", "r", 1,
 		"default: 1, only today daily report if range is 1, if range is 5, will contains 5 days daily report")
-
-	readCmd.Flags().BoolVar(&rawFlag, "raw", false, "only output working descriptions")
 }
 
 // xlsCmd represents the xls command
@@ -174,6 +174,12 @@ ndr xls write -r "开会" -c 会议
 		logger.Debug("--progress: ", progressModeIds[progressFlag][0])
 		logger.Debug("--remark: ", remarkFlag)
 
+		_, err := internal.CheckDateFormat(dateFlag)
+		if err != nil {
+			logger.Errorf("dateFlag format must yyyy/m/d, err: %v", err)
+			return
+		}
+
 		dr := excels.DailyReport{
 			DateStr:     dateFlag,
 			ReportStr:   reportFlag,
@@ -189,10 +195,10 @@ ndr xls write -r "开会" -c 会议
 			viper.GetString("xls.sheet"),
 			logger,
 		)
-		if !xls.IsExcelExists() {
+		if _, err := xls.IsExcelExists(); err != nil {
 			return
 		}
-		xls.WriteDailyReport2Excel(&dr)
+		_ = xls.WriteDailyReport2Excel(&dr)
 	},
 }
 
@@ -209,7 +215,21 @@ ndr xls read -d 2022/9/5 # one day reports
 		})
 		logger.Debug("--date: ", dateFlag)
 		logger.Debug("--range: ", rangeFlag)
-		logger.Debug("--raw: ", rawFlag)
+
+		_, err := internal.CheckDateFormat(dateFlag)
+		if err != nil {
+			logger.Errorf("dateFlag format must yyyy/m/d, err: %v", err)
+			return
+		}
+
+		err = validation.Validate(rangeFlag,
+			validation.Required, // not empty
+			validation.Min(1),   // length between 5 and 100
+		)
+		if err != nil {
+			logger.Errorf("rangeFlag must >= 1, err: %v", err)
+			return
+		}
 
 		xls := excels.NewExcels(
 			viper.GetString("xls.path"),
@@ -217,9 +237,11 @@ ndr xls read -d 2022/9/5 # one day reports
 			viper.GetString("xls.sheet"),
 			logger,
 		)
-		if !xls.IsExcelExists() {
+
+		if _, err := xls.IsExcelExists(); err != nil {
 			return
 		}
-		xls.ReadOneDayDailyReportFromExcel(dateFlag, rangeFlag, rawFlag)
+		_, _ = xls.ReadOneDayDailyReportFromExcel(dateFlag, rangeFlag, true)
+
 	},
 }

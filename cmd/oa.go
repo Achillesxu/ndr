@@ -7,9 +7,11 @@ package cmd
 import (
 	"fmt"
 	"github.com/Achillesxu/ndr/internal"
+	"github.com/Achillesxu/ndr/internal/excels"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"time"
 )
 
 var (
@@ -25,6 +27,9 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	oaCmd.PersistentFlags().BoolVar(&isHeadless, "headless", true,
 		"set headless mode, default value is true that means no gui")
+
+	weekCmd.Flags().IntVarP(&rangeFlag, "range", "r", 5,
+		"default: 5, range means that it contains the number of daily report")
 }
 
 // oaCmd represents the oa command
@@ -44,18 +49,24 @@ var dayCmd = &cobra.Command{
 	Short: "submit day reports to the working report page of oa",
 	Long: `submit day reports to the working report page of oa, date default is today, other date unsupported 
 for instance:
-ndr oa day 
+ndr oa day --headless=false
+ndr oa day --headless=true
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := log.WithFields(log.Fields{
 			"subCommand": "oa day",
 		})
+		reports, err := excels.GetOneDaysReports(time.Now().Format("2006/1/2"), 1, logger)
+		if err != nil {
+			return
+		}
+
 		oa, err := internal.NewOaWebLogin(cmd.Context(), isHeadless, logger)
 		if err != nil {
-			logger.Fatal(err)
+			return
 		}
-		if err := oa.StuffReport(0, "我的日报", viper.GetStringSlice("oa.copy_to")); err != nil {
-			logger.Fatal(err)
+		if err := oa.StuffReport(0, reports, viper.GetStringSlice("oa.copy_to")); err != nil {
+			return
 		}
 	},
 }
@@ -70,11 +81,15 @@ for instance:
 		logger := log.WithFields(log.Fields{
 			"subCommand": "oa week",
 		})
+		reports, err := excels.GetOneDaysReports(time.Now().Format("2006/1/2"), rangeFlag, logger)
+		if err != nil {
+			return
+		}
 		oa, err := internal.NewOaWebLogin(cmd.Context(), isHeadless, logger)
 		if err != nil {
 			logger.Fatal(err)
 		}
-		if err := oa.StuffReport(1, "我的周报", viper.GetStringSlice("oa.copy_to")); err != nil {
+		if err := oa.StuffReport(1, reports, viper.GetStringSlice("oa.copy_to")); err != nil {
 			logger.Fatal(err)
 		}
 	},

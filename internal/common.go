@@ -17,7 +17,7 @@ func GetNowMonthNumber() string {
 }
 
 func GetDateList(start string, r int) ([]string, error) {
-	date, err := time.Parse("2006/1/2", start)
+	date, err := CheckDateFormat(start)
 	if err != nil {
 		return nil, err
 	}
@@ -34,4 +34,12 @@ func GetMonthList(dates []string) []string {
 		months = append(months, strings.Split(d, "/")[1])
 	}
 	return months
+}
+
+func CheckDateFormat(date string) (*time.Time, error) {
+	d, err := time.Parse("2006/1/2", date)
+	if err != nil {
+		return nil, err
+	}
+	return &d, nil
 }
