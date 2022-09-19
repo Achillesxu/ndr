@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/xuri/excelize/v2"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -334,7 +335,7 @@ func (e *Excels) ReadOneDayDailyReportFromExcel(dateFlag string, rangeFlag int, 
 
 func GetOneDaysReports(startDate string, rangeCnt int, logger *log.Entry) (string, error) {
 	xls := NewExcels(
-		viper.GetString("xls.path"),
+		filepath.Join(viper.GetString("smb.mount_dir"), viper.GetString("xls.path")),
 		viper.GetString("xls.password"),
 		viper.GetString("xls.sheet"),
 		logger,

@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/thediveo/enumflag/v2"
+	"path/filepath"
 	"time"
 
 	"github.com/Achillesxu/ndr/internal/excels"
@@ -192,7 +193,7 @@ ndr xls write -r "开会" -c 会议
 		}
 		logger.Infof("input flags: %#v", dr)
 		xls := excels.NewExcels(
-			viper.GetString("xls.path"),
+			filepath.Join(viper.GetString("smb.mount_dir"), viper.GetString("xls.path")),
 			viper.GetString("xls.password"),
 			viper.GetString("xls.sheet"),
 			logger,
@@ -224,7 +225,7 @@ ndr xls read -d 2022/9/5 # one day reports
 			return
 		}
 
-		if rangeFlag <= 1 {
+		if rangeFlag < 1 {
 			logger.Error("rangeFlag must >= 1")
 			return
 		}
@@ -235,7 +236,7 @@ ndr xls read -d 2022/9/5 # one day reports
 		}
 
 		xls := excels.NewExcels(
-			viper.GetString("xls.path"),
+			filepath.Join(viper.GetString("smb.mount_dir"), viper.GetString("xls.path")),
 			viper.GetString("xls.password"),
 			viper.GetString("xls.sheet"),
 			logger,
