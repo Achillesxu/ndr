@@ -91,13 +91,14 @@ var progressModeIds = map[ProgressMode][]string{
 }
 
 var (
-	dateFlag     string
-	reportFlag   string
-	categoryFlag = OtherC
-	completeFlag = YeahI
-	progressFlag = HundredP
-	remarkFlag   string
-	rangeFlag    int
+	dateFlag        string
+	reportFlag      string
+	categoryFlag    = OtherC
+	completeFlag    = YeahI
+	progressFlag    = HundredP
+	remarkFlag      string
+	rangeFlag       int
+	onlyContentFlag bool
 )
 
 func init() {
@@ -142,6 +143,9 @@ func init() {
 
 	readCmd.Flags().IntVarP(&rangeFlag, "range", "r", 1,
 		"default: 1, only today daily report if range is 1, if range is 5, will contains 5 days daily report")
+
+	readCmd.PersistentFlags().BoolVar(&onlyContentFlag, "only-content", false,
+		"only output daily report content")
 }
 
 // xlsCmd represents the xls command
@@ -218,6 +222,7 @@ ndr xls read -d 2022/9/5 # one day reports
 		})
 		logger.Debug("--date: ", dateFlag)
 		logger.Debug("--range: ", rangeFlag)
+		logger.Debug("--only-content: ", onlyContentFlag)
 
 		_, err := internal.CheckDateFormat(dateFlag)
 		if err != nil {
@@ -245,7 +250,7 @@ ndr xls read -d 2022/9/5 # one day reports
 		if _, err := xls.IsExcelExists(); err != nil {
 			return
 		}
-		_, _ = xls.ReadOneDayDailyReportFromExcel(dateFlag, rangeFlag, true)
+		_, _ = xls.ReadOneDayDailyReportFromExcel(dateFlag, rangeFlag, true, onlyContentFlag)
 
 	},
 }

@@ -20,8 +20,8 @@ import (
 	"time"
 )
 
-func NewOaWebLogin(ctx context.Context, headless bool, logger *log.Entry) (*OaWeb, error) {
-	o := NewOaWeb(headless, logger)
+func NewOaWebLogin(ctx context.Context, headless, remote bool, logger *log.Entry) (*OaWeb, error) {
+	o := NewOaWeb(headless, remote, logger)
 	err := o.Start()
 	if err != nil {
 		return nil, err
@@ -37,31 +37,53 @@ func NewOaWebLogin(ctx context.Context, headless bool, logger *log.Entry) (*OaWe
 	return o, nil
 }
 
-func NewOaWeb(headless bool, logger *log.Entry) *OaWeb {
+func NewOaWeb(headless, remote bool, logger *log.Entry) *OaWeb {
 	return &OaWeb{
 		IsHeadless: headless,
+		IsRemote:   remote,
 		Logger:     logger,
 	}
 }
 
 func (o *OaWeb) Start() error {
-	err := o.FindDefaultBrowserPath()
-	o.Logger.Infof("browser path: %s", o.BrowserPath)
-	o.Launcher = launcher.New().Bin(o.BrowserPath)
-	o.Launcher.Logger(o.Logger.Writer())
-	if o.IsHeadless {
-		o.Launcher.Headless(true)
-		o.Launcher.Set("disable-gpu", "true")
-	} else {
-		o.Launcher.Headless(false)
-	}
-	o.Launcher.Set("autoplay-policy", "no-user-gesture-required").Set("mute-audio")
+	var err error
+	sUrl := viper.GetString("remote.url")
+	if o.IsRemote {
+		o.Launcher, err = launcher.NewManaged(sUrl)
+		if err != nil {
+			return o.LogErr(err, "cant connect %s", sUrl)
+		}
+		o.Launcher.Logger(o.Logger.Writer())
 
-	u, err := o.Launcher.Launch()
-	if err != nil {
-		return err
+		o.Launcher.Set("disable-gpu")
+
+		o.Launcher.Headless(true)
+
+		o.Launcher.Set("autoplay-policy", "no-user-gesture-required").Set("mute-audio")
+
+		o.Browser = rod.New().Client(o.Launcher.MustClient())
+	} else {
+		err = o.FindDefaultBrowserPath()
+		if err != nil {
+			return err
+		}
+		o.Logger.Infof("browser path: %s", o.BrowserPath)
+		o.Launcher = launcher.New().Bin(o.BrowserPath)
+		o.Launcher.Logger(o.Logger.Writer())
+		if o.IsHeadless {
+			o.Launcher.Headless(true)
+			o.Launcher.Set("disable-gpu", "true")
+		} else {
+			o.Launcher.Headless(false)
+		}
+		o.Launcher.Set("autoplay-policy", "no-user-gesture-required").Set("mute-audio")
+
+		u, err := o.Launcher.Launch()
+		if err != nil {
+			return err
+		}
+		o.Browser = rod.New().ControlURL(u)
 	}
-	o.Browser = rod.New().ControlURL(u)
 	err = o.Browser.Connect()
 
 	if err != nil {
@@ -343,7 +365,7 @@ func (o *OaWeb) SelectCopyTo(rType ReportType, copyTo []string) error {
 	return nil
 }
 
-func (o *OaWeb) StuffReport(rType ReportType, report string, copyTo []string) error {
+func (o *OaWeb) StuffReport(rType ReportType, report string, copyTo []string, autoSubmit bool) error {
 	var err error
 	for {
 		err = o.ClickBtnX(ReportTypeBtnXPath[rType])
@@ -359,9 +381,11 @@ func (o *OaWeb) StuffReport(rType ReportType, report string, copyTo []string) er
 		if err != nil {
 			break
 		}
-		err = o.ClickBtnX(ReportSubmitBtnXPath[rType])
-		if err != nil {
-			break
+		if autoSubmit {
+			err = o.ClickBtnX(ReportSubmitBtnXPath[rType])
+			if err != nil {
+				break
+			}
 		}
 		break
 	}

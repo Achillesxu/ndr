@@ -12,6 +12,7 @@ import (
 
 type OaWeb struct {
 	IsHeadless  bool
+	IsRemote    bool
 	BrowserPath string
 	Logger      *log.Entry
 	Browser     *rod.Browser

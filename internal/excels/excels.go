@@ -263,21 +263,42 @@ func (e *Excels) GetSheetMonth() []string {
 	return month
 }
 
-func (e *Excels) RenderData(ds [][][]string, stdOutFlag bool) (string, error) {
+func (e *Excels) RenderData(ds [][][]string, stdOutFlag, onlyContent bool) (string, error) {
 	tabStr := &strings.Builder{}
 	var tab *tablewriter.Table
+	var header []string
+
 	if stdOutFlag {
 		tab = tablewriter.NewWriter(os.Stdout)
 	} else {
 		tab = tablewriter.NewWriter(tabStr)
 	}
+	if onlyContent {
+		header = []string{"工作描述"}
+	} else {
+		header = []string{"日期", "工作描述", "工作分类", "今日是否能完成", "工作进度", "备注"}
+	}
 
-	header := []string{"日期", "工作描述", "工作分类", "今日是否能完成", "工作进度", "备注"}
 	tab.SetHeader(header)
 	tab.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-	tab.SetAlignment(tablewriter.ALIGN_LEFT)
-	for _, data := range ds {
-		tab.AppendBulk(data)
+	tab.SetAlignment(tablewriter.ALIGN_CENTER)
+
+	conFilter := func(rows [][]string) [][]string {
+		var res [][]string
+		for _, v := range rows {
+			res = append(res, []string{v[1]})
+		}
+		return res
+	}
+
+	if onlyContent {
+		for _, data := range ds {
+			tab.AppendBulk(conFilter(data))
+		}
+	} else {
+		for _, data := range ds {
+			tab.AppendBulk(data)
+		}
 	}
 	tab.Render()
 	if stdOutFlag {
@@ -287,7 +308,7 @@ func (e *Excels) RenderData(ds [][][]string, stdOutFlag bool) (string, error) {
 	}
 }
 
-func (e *Excels) ReadOneDayDailyReportFromExcel(dateFlag string, rangeFlag int, stdOutFlag bool) (string, error) {
+func (e *Excels) ReadOneDayDailyReportFromExcel(dateFlag string, rangeFlag int, stdOutFlag, onlyContent bool) (string, error) {
 	e.Logger = e.Logger.WithFields(log.Fields{
 		"file":  e.FilePath,
 		"sheet": e.Sheet,
@@ -330,10 +351,10 @@ func (e *Excels) ReadOneDayDailyReportFromExcel(dateFlag string, rangeFlag int, 
 			datas = append(datas, data)
 		}
 	}
-	return e.RenderData(datas, stdOutFlag)
+	return e.RenderData(datas, stdOutFlag, onlyContent)
 }
 
-func GetOneDaysReports(startDate string, rangeCnt int, logger *log.Entry) (string, error) {
+func GetDaysReports(startDate string, rangeCnt int, onlyContent bool, logger *log.Entry) (string, error) {
 	xls := NewExcels(
 		filepath.Join(viper.GetString("smb.mount_dir"), viper.GetString("xls.path")),
 		viper.GetString("xls.password"),
@@ -344,7 +365,7 @@ func GetOneDaysReports(startDate string, rangeCnt int, logger *log.Entry) (strin
 		return "", err
 	}
 
-	reports, err := xls.ReadOneDayDailyReportFromExcel(startDate, rangeCnt, false)
+	reports, err := xls.ReadOneDayDailyReportFromExcel(startDate, rangeCnt, false, onlyContent)
 	if err != nil {
 		return "", xls.LogErr(err, "")
 	}
