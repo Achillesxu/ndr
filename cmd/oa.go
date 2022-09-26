@@ -62,6 +62,10 @@ ndr oa day --remote=false --headless=true // using local mode, and headless mode
 		logger := log.WithFields(log.Fields{
 			"subCommand": "oa day",
 		})
+
+		logger.Debug("--headless: ", isHeadless)
+		logger.Debug("--remote: ", remoteMode)
+
 		reports, err := excels.GetDaysReports(time.Now().Format("2006/1/2"), 1, false, logger)
 		if err != nil {
 			return
@@ -88,6 +92,10 @@ for instance:
 		logger := log.WithFields(log.Fields{
 			"subCommand": "oa week",
 		})
+
+		logger.Debug("--headless: ", isHeadless)
+		logger.Debug("--remote: ", remoteMode)
+		logger.Debug("--range: ", rangeFlag)
 
 		if rangeFlag <= 1 {
 			logger.Error("rangeFlag must >= 1")
