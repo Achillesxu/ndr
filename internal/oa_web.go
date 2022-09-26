@@ -47,7 +47,7 @@ func NewOaWeb(headless, remote bool, logger *log.Entry) *OaWeb {
 
 func (o *OaWeb) Start() error {
 	var err error
-	sUrl := viper.GetString("remote.url")
+	sUrl := "ws://" + viper.GetString("remote.url")
 	if o.IsRemote {
 		o.Launcher, err = launcher.NewManaged(sUrl)
 		if err != nil {
