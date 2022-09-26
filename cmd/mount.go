@@ -5,8 +5,8 @@ Copyright © 2022 Achilles Xu  <yuqingxushiyin@gmail.com>
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/Achillesxu/ndr/internal/commands"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +40,13 @@ for instance:
 	ndr mount       // mount samba share path into local path
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("mount called")
+		logger := log.WithFields(log.Fields{
+			"subCommand": "mount",
+		})
+		err := commands.Mount(cmd.Context(), true)
+		if err != nil {
+			logger.Error(err)
+		}
 	},
 }
 
@@ -59,6 +65,12 @@ for instance:
 	ndr umount     //umount samba share path
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("mount called")
+		logger := log.WithFields(log.Fields{
+			"subCommand": "umount",
+		})
+		err := commands.Mount(cmd.Context(), false)
+		if err != nil {
+			logger.Error(err)
+		}
 	},
 }

@@ -6,6 +6,7 @@ package internal
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -42,4 +43,9 @@ func CheckDateFormat(date string) (*time.Time, error) {
 		return nil, err
 	}
 	return &d, nil
+}
+
+func SysType() string {
+	sys := runtime.GOOS
+	return sys
 }

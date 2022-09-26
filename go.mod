@@ -3,6 +3,7 @@ module github.com/Achillesxu/ndr
 go 1.19
 
 require (
+	github.com/go-cmd/cmd v1.4.1
 	github.com/go-rod/rod v0.109.3
 	github.com/imroc/req/v3 v3.22.0
 	github.com/olekukonko/tablewriter v0.0.5
