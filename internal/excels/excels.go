@@ -356,7 +356,7 @@ func (e *Excels) ReadOneDayDailyReportFromExcel(dateFlag string, rangeFlag int, 
 
 func GetDaysReports(startDate string, rangeCnt int, onlyContent bool, logger *log.Entry) (string, error) {
 	xls := NewExcels(
-		filepath.Join(viper.GetString("smb.mount_dir"), viper.GetString("xls.path")),
+		filepath.Join(viper.GetString("smb.target"), viper.GetString("xls.path")),
 		viper.GetString("xls.password"),
 		viper.GetString("xls.sheet"),
 		logger,

@@ -197,7 +197,7 @@ ndr xls write -r "开会" -c 会议
 		}
 		logger.Infof("input flags: %#v", dr)
 		xls := excels.NewExcels(
-			filepath.Join(viper.GetString("smb.mount_dir"), viper.GetString("xls.path")),
+			filepath.Join(viper.GetString("smb.target"), viper.GetString("xls.path")),
 			viper.GetString("xls.password"),
 			viper.GetString("xls.sheet"),
 			logger,
@@ -241,7 +241,7 @@ ndr xls read -d 2022/9/5 # one day reports
 		}
 
 		xls := excels.NewExcels(
-			filepath.Join(viper.GetString("smb.mount_dir"), viper.GetString("xls.path")),
+			filepath.Join(viper.GetString("smb.target"), viper.GetString("xls.path")),
 			viper.GetString("xls.password"),
 			viper.GetString("xls.sheet"),
 			logger,
