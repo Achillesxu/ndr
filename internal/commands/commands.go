@@ -61,7 +61,7 @@ func cmdBuild(sys string, isMount bool) (string, []string, error) {
 			)
 			name, args = "mount", []string{"-t", "smbfs", sharePath, viper.GetString("smb.target")}
 		} else {
-			name, args = "umount", []string{viper.GetString("smb.mount_dir")}
+			name, args = "umount", []string{viper.GetString("smb.target")}
 		}
 		return name, args, nil
 	default:
