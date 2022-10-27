@@ -221,7 +221,8 @@ func (e *Excels) GetOneDayDailyReport(month string, date string) ([][]string, er
 		return nil, err
 	}
 	if len(result) == 0 {
-		return nil, e.LogErr(fmt.Errorf("no find date %s cell", date), "")
+		_ = e.LogErr(fmt.Errorf("no find date %s cell", date), "")
+		return nil, nil
 	}
 	drData := make([][]string, 0)
 	line := 0
