@@ -66,7 +66,7 @@ ndr oa day --remote=false --headless=true // using local mode, and headless mode
 		logger.Debug("--headless: ", isHeadless)
 		logger.Debug("--remote: ", remoteMode)
 
-		reports, err := excels.GetDaysReports(time.Now().Format("2006/1/2"), 1, false, logger)
+		reports, err := excels.GetDaysReports(time.Now().Format("2006/1/2"), 1, true, logger)
 		if err != nil {
 			return
 		}

@@ -280,8 +280,12 @@ func (e *Excels) RenderData(ds [][][]string, stdOutFlag, onlyContent bool) (stri
 	}
 
 	tab.SetHeader(header)
-	tab.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-	tab.SetAlignment(tablewriter.ALIGN_CENTER)
+	tab.SetBorder(false)
+	tab.SetColumnSeparator("")
+	tab.SetRowSeparator("")
+	tab.SetAutoWrapText(false)
+	tab.SetAlignment(tablewriter.ALIGN_LEFT)
+	tab.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
 
 	conFilter := func(rows [][]string) [][]string {
 		var res [][]string
