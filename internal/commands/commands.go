@@ -42,9 +42,9 @@ func cmdBuild(sys string, isMount bool) (string, []string, error) {
 				viper.GetString("smb.path"),
 			)
 			user := fmt.Sprintf("/user:%s", viper.GetString("smb.username"))
-			name, args = "net", []string{"use", viper.GetString("smb.target"), sharePath, user, viper.GetString("smb.password")}
+			name, args = "powershell", []string{"net", "use", viper.GetString("smb.target"), sharePath, user, viper.GetString("smb.password")}
 		} else {
-			name, args = "net", []string{"use", viper.GetString("smb.target"), "/delete"}
+			name, args = "powershell", []string{"net", "use", viper.GetString("smb.target"), "/delete"}
 		}
 		return name, args, nil
 	case "darwin":

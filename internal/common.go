@@ -6,6 +6,8 @@ package internal
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -48,4 +50,24 @@ func CheckDateFormat(date string) (*time.Time, error) {
 func SysType() string {
 	sys := runtime.GOOS
 	return sys
+}
+
+func IsFileDirExist(d string) error {
+	if _, err := os.Stat(d); os.IsNotExist(err) {
+		return errors.Wrapf(err, "%s dont exist", d)
+	}
+	return nil
+}
+
+func CopyFile(src, dst string, perm os.FileMode) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return errors.Wrapf(err, "copy %s to %s failed", src, dst)
+	}
+
+	err = os.WriteFile(dst, data, perm)
+	if err != nil {
+		return errors.Wrapf(err, "copy %s to %s failed", src, dst)
+	}
+	return nil
 }
